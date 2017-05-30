@@ -14,7 +14,6 @@ var CloocaModule = require('./lib/server/core/clooca');
 
 var loadSettings = require('./lib/server/core/settingsLoader');
 
-
 var knownOpts = {
     "settings":[path],
     "plugin":[path],
@@ -41,19 +40,19 @@ var plugins = loader.load(pluginPath);
 var corePlugins = loader.load(path.resolve(__dirname, './plugins'));
 plugins = plugins.concat(corePlugins);
 
-var app = express();
-app.use(bodyParser.json({}));
-app.use('/', express.static( path.resolve(__dirname, "dist") ));
-app.set('views', path.join(__dirname, 'views'));
-app.engine('ejs',ejs.renderFile);
+var cloocaapp = express();
+cloocaapp.use(bodyParser.json({}));
+cloocaapp.use('/', express.static( path.resolve(__dirname, "dist") ));
+cloocaapp.set('views', path.join(__dirname, 'views'));
+cloocaapp.engine('ejs',ejs.renderFile);
 
-app.get('/plugins', function(req, res) {
+cloocaapp.get('/plugins', function(req, res) {
 	res.json(plugins.map(function(plugin) {
 		return plugin.name;
 	}))
 });
 
-app.get('/plugins/:name/js', function(req, res) {
+cloocaapp.get('/plugins/:name/js', function(req, res) {
 	var name = req.params.name;
 	var target = plugins.filter(function(plugin) {
 		return plugin.name == name;
@@ -64,7 +63,7 @@ app.get('/plugins/:name/js', function(req, res) {
 	});
 });
 
-app.get('/plugins/:name/css', function(req, res) {
+cloocaapp.get('/plugins/:name/css', function(req, res) {
 	var name = req.params.name;
 	var target = plugins.filter(function(plugin) {
 		return plugin.name == name;
@@ -75,15 +74,41 @@ app.get('/plugins/:name/css', function(req, res) {
 	});
 });
 
-app.get('/plugins/:name/html', function(req, res) {
+cloocaapp.get('/plugins/:name/html', function(req, res) {
 	var name = req.params.name;
 	res.render('plugin.ejs', {
 		name: name
 	})
 });
 
-app.get('/cc/:moduleName/:methodName', ccRestMiddleware());
+cloocaapp.get('/cc/:moduleName/:methodName', ccRestMiddleware());
 
-app.listen(process.env.PORT || 3000);
+cloocaapp.listen(process.env.PORT || 3000);
+
+const {app, BrowserWindow} = require('electron');
+
+let window;
+
+function createWindow () {
+  window = new BrowserWindow();
+  window.loadURL('http://localhost:3000/');
+  window.on('closed', function(){
+    win = null;
+  });
+}
+
+app.on('ready', createWindow);
+
+app.on('window-all-closed', function(){
+  if (process.platform != 'darwin') {
+    app.quit();
+  }
+});
+
+app.on('activate', function(){
+  if (window == null) {
+    createWindow();
+  }
+});
 
 registry.addModule('clooca', new CloocaModule(settings));
