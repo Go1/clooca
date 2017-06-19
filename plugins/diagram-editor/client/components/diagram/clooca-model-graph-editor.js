@@ -1,4 +1,4 @@
-window.instanceIdentifier = 'name';
+var MetaIndexAPI = require('./metaindex-api');
 
 module.exports = class CloocaModelGraph {
   constructor(model, diagram, defaultNode, defaultConn) {
@@ -60,18 +60,10 @@ module.exports = class CloocaModelGraph {
     //console.dir(nodes);
     let nodeList = nodes.map( (node)=>{return node;} );
     //console.dir(nodeList);
-    console.log('nodeList', nodeList);
-    let cfNames = [];
-    nodeList.forEach((node) => {
+    let gnodes = nodeList.reduce((acc, node) => {
       let metaElement = node.get('metaElement');
       let containFeature = node.get('containFeature');
       let cfName = containFeature.get('name');
-      if (cfNames.indexOf(cfName) < 0) {
-        cfNames.push(cfName);
-      }
-    });
-    console.log('cfNames', cfNames);
-    let gnodes = cfNames.reduce((acc, cfName) => {
       let cfInstances = model.get(cfName || 'classes');
       let cfInstanceList = cfInstances.map(function(_class) {
         return _class;
@@ -81,12 +73,177 @@ module.exports = class CloocaModelGraph {
     //console.dir(gnodes);
     let cloocaNodes = {};
     gnodes.forEach(function(node) {
-      let name = node.get(window.instanceIdentifier);
+      let name = node.get('name');
       if (name) {
         cloocaNodes[name] = node;
       }
     });
     //console.dir(cloocaNodes);
+
+    // ノード名リストを抽出
+    let nodeNames = gnodes.map(function(node) {
+      let name = node.get('name');
+      return name;
+    });
+    console.log(nodeNames);
+    // ノード名リストをMetaIndexAPIに通知
+    MetaIndexAPI.postIndexes(nodeNames, function() {
+      console.warn('Failed to postIndexes');
+    });
+
+    // 指定した名称リストに一致するcellを選択状態にする関数を定義
+    let setGraphCellSelection = function(targetCellValues) {
+      console.log(targetCellValues);
+      selModel.clear();  // 選択クリア
+      let cells = graph.getModel().cells;
+      console.log(cells);
+      if (!cells) {
+        return;
+      }
+      for (let cellKey in cells) {
+        let cell = cells[cellKey];
+        console.log(cell);
+        let cellValue = cell.value;
+        console.log(cellValue);
+        console.log(targetCellValues);
+        let indexOfTarget = targetCellValues.indexOf(cellValue);
+        console.log(indexOfTarget);
+        if (indexOfTarget >= 0) {
+          selModel.addCell(cell);  // 選択対象追加
+        }
+      }
+      graph.setSelectionModel(selModel);  // 選択実行
+    }
+
+    // IndexのIndexedContainersを変更する関数を定義
+    let changeCloocaNodeIndexedContainers = function(indexID, indexedContainerID) {
+      console.log(indexID, indexedContainerID);
+      if (!indexID) return;
+      if (!indexedContainerID) return;
+
+      let node = cloocaNodes[indexID];
+      console.log(node);
+      if (!node) return;
+
+      node.set('indexedContainers', indexedContainerID);
+    };
+
+    // API経由でMetaIndexと同期
+    let getSelectedIndexes = function(onSuccess, onFail) {
+      // MetaIndexAPIから取得した選択中ノードを選択状態にする
+      MetaIndexAPI.getSelectedIndexes(function(selectedNames) {
+        console.log(selectedNames);
+        setGraphCellSelection(selectedNames);
+
+        onSuccess();
+      }, function() {
+        console.warn('Failed to getSelectedIndexes');
+
+        onFail();
+      });
+    };
+
+    let getCommand = function(onSuccess, onFail) {
+      // MetaIndexAPIから取得した命令キャッシュをもとにindexedContainersを更新
+      MetaIndexAPI.getCommand(function(res) {
+        console.log(res);
+        let indexID = res.index_id;
+        let attributeName = res.attribute_name;
+        let indexedContainerID = res.indexed_container_id;
+        console.log(indexID, attributeName, indexedContainerID);
+
+        if (!indexID) return;
+        if (!indexedContainerID) return;
+
+        changeCloocaNodeIndexedContainers(indexID, indexedContainerID);
+
+        onSuccess();
+      }, function() {
+        console.warn('Failed to getCommand');
+
+        onFail();
+      });
+    };
+
+    let postModel = function(onSuccess, onFail) {
+      let modelJson = clooca.getModelInterface().getModelJSON();
+      console.log(modelJson);
+      if (modelJson) {
+        let data = modelJson['data'];
+        console.log(data);
+        if (data) {
+          MetaIndexAPI.postModel(data, function(res) {
+            console.log(res);
+
+            onSuccess();
+          }, function() {
+            console.warn('Failed to postModel');
+
+            onFail();
+          });
+        }
+      }
+    };
+
+    class RetryThread {
+      constructor(proc) {
+        this.retryProc = proc;
+        this.timeoutID = 0;
+        this.delay0 = 0;
+      }
+
+      initialDelay() {
+        this.delay0 = 1 * 1000;
+      }
+
+      start() {
+        this.initialDelay();
+
+        // 数秒後に同じ関数を呼び続けるループ処理
+        let proceedLoop0 = function() {
+          console.log('delay0', this.delay0);
+
+          this.retryProc(function() {
+            this.timeoutID = setTimeout(function() {
+              console.log('proc timeoutID=', this.timeoutID);
+              proceedLoop0();
+            }.bind(this), this.delay0);
+            console.log('');
+          }.bind(this), function() {
+            // 失敗時は次の処理までの時間を倍倍にする
+            this.delay0 *= 2;
+            this.timeoutID = setTimeout(function() {
+              console.log('proc timeoutID=', this.timeoutID);
+              proceedLoop0();
+            }.bind(this), this.delay0);
+          }.bind(this));
+        }.bind(this);
+
+        proceedLoop0();
+      }
+
+      restart() {
+        console.log('restart timeoutID=', this.timeoutID);
+        window.clearTimeout(this.timeoutID);
+        this.initialDelay();
+        this.start();
+      }
+    }
+
+    // MetaIndexAPIから定期的に選択中ノードを取得し、取得したノードを選択状態にする
+    let thread;
+    // 選択中Index取得
+    thread = new RetryThread(getSelectedIndexes);
+    thread.start();
+    window.retryThreads.push(thread);
+    // MetaIndexからのコマンド取得
+    thread = new RetryThread(getCommand);
+    thread.start();
+    window.retryThreads.push(thread);
+    // cloocaモデル送信
+    thread = new RetryThread(postModel);
+    thread.start();
+    window.retryThreads.push(thread);
 
     // ノードの描画スタイルを設定
     let w = nodeProperty.width;
@@ -144,8 +301,8 @@ module.exports = class CloocaModelGraph {
     ftat_gconnections.forEach(function(conn) {
       let source = conn.get('source');
       if (source) {
-        let sourceName = source.get(window.instanceIdentifier);
-        let name = conn.get(window.instanceIdentifier);
+        let sourceName = source.get('name');
+        let name = conn.get('name');
         if (cloocaConnections[sourceName]) {
           cloocaConnections[sourceName][name] = conn;
         } else {
@@ -164,8 +321,8 @@ module.exports = class CloocaModelGraph {
       if (!source || !target) {
         return;
       }
-      let sourceName = source.get(window.instanceIdentifier);
-      let targetName = target.get(window.instanceIdentifier);
+      let sourceName = source.get('name');
+      let targetName = target.get('name');
       if (!sourceName || !targetName) {
         return;
       }
@@ -195,21 +352,16 @@ module.exports = class CloocaModelGraph {
         return eClass.get('name') == className;
       })[0];
       //console.dir(eClass);
-      if (!eClass) {
-        console.log('eClass is not found');
-        return;
-      }
-
-      let classJson = {
-        x: x,
-        y: y,
-        width: nodeProperty.width,
-        height: nodeProperty.height,
-        style: nodeProperty.style
-      };
-      classJson[window.instanceIdentifier] = instanceName;
-      let classInstance = eClass.create(classJson);
-
+      let classInstance = eClass.create(
+        {
+          name: instanceName,
+          x: x,
+          y: y,
+          width: nodeProperty.width,
+          height: nodeProperty.height,
+          style: nodeProperty.style
+        }
+      );
       model.get('indexes').add(classInstance);
       cloocaNodes[instanceName] = classInstance;
     };
@@ -225,20 +377,39 @@ module.exports = class CloocaModelGraph {
       let eClass = resourceSet.elements('EClass').filter((eClass) => {
         return eClass.get('name') == className;
       })[0];
-
-      let classJson = {
-        x: x,
-        y: y,
-        width: defaultNode.width,
-        height: defaultNode.height,
-        style: defaultNode.style
-      }
-      classJson[window.instanceIdentifier] = instanceName;
-      let classInstance = eClass.create(classJson);
-
+      let classInstance = eClass.create(
+        {
+          name: instanceName,
+          x: x,
+          y: y,
+          width: defaultNode.width,
+          height: defaultNode.height,
+          style: defaultNode.style
+        }
+      );
       model.get('indexes').add(classInstance);
       cloocaNodes[instanceName] = classInstance;
     };
+
+    // ノードがクリックされたときに選択されたノードの名称をMetaIndexAPIに通知
+    graph.addListener(mx.mxEvent.CLICK, function(sender, evt) {
+      console.log('mxEvent.CLICK');
+      if (!window.isSelectMode) {
+        return;
+      }
+      let cell = evt.getProperty('cell');
+      if (!cell) {
+        return;
+      }
+      let cellValue = cell.value;
+      console.log(cellValue);
+      if (!cellValue) {
+        return;
+      }
+      let indexNames = [cellValue];
+      console.log(indexNames);
+      MetaIndexAPI.setSelectedIndexes(indexNames);
+    });
 
     // グラフ上のノード追加をcloocaモデルに反映
     graph.addListener(mx.mxEvent.DOUBLE_CLICK, function(sender, evt) {
@@ -295,15 +466,14 @@ module.exports = class CloocaModelGraph {
         let associationEclass = resourceSet.elements('EClass').filter((eClass) => {
           return eClass.get('name') == 'Association';
         })[0];
-
-        let classJson = {
-          source: sourceNode,
-          target: targetNode,
-          style: style
-        };
-        classJson[window.instanceIdentifier] = name;
-        let association = associationEclass.create(classJson);
-
+        let association = associationEclass.create(
+          {
+            name: name,
+            source: sourceNode,
+            target: targetNode,
+            style: style
+          }
+        );
         associations.add(association);
         if (cloocaConnections[sourceNode.values.name]) {
           cloocaConnections[sourceNode.values.name][name] = association;
@@ -326,15 +496,14 @@ module.exports = class CloocaModelGraph {
         let associationEclass = resourceSet.elements('EClass').filter((eClass) => {
           return eClass.get('name') == 'Association';
         })[0];
-
-        let classJson = {
-          source: sourceNode,
-          target: targetNode,
-          style: defaultConn.style
-        };
-        classJson[window.instanceIdentifier] = name;
-        let association = associationEclass.create(classJson);
-
+        let association = associationEclass.create(
+          {
+            name: name,
+            source: sourceNode,
+            target: targetNode,
+            style: defaultConn.style
+          }
+        );
         associations.add(association);
         if (cloocaConnections[sourceNode.values.name]) {
           cloocaConnections[sourceNode.values.name][name] = association;
@@ -380,7 +549,7 @@ module.exports = class CloocaModelGraph {
       if (!conn) {
         return;
       }
-      conn.set(window.instanceIdentifier, next);
+      conn.set('name', next);
     };
 
     let changeCloocaNodeName = function(cloocaNodes, previous, next) {
@@ -389,7 +558,7 @@ module.exports = class CloocaModelGraph {
         console.log('node not exists');
         return;
       }
-      node.set(window.instanceIdentifier, next);
+      node.set('name', next);
     }
 
     let changeCloocaNodeGeo = function(cloocaNodes, nodeName, geometry) {
@@ -442,22 +611,10 @@ module.exports = class CloocaModelGraph {
         let next = change.value;
         if (previous && next) {  // 名称変更
           if (previous == next) continue;
+
           if ( cell.edge ) {
             console.log('edge name: ' + previous + " => " + next);
             // 名称重複チェック
-            let existsDupConn = false;
-            for (let nodeName in cloocaConnections) {
-              let conn = cloocaConnections[nodeName];
-              if (conn && conn[next]) {
-                console.log('detected duplicate connection name:' + next);
-                existsDupConn = true;
-                break;
-              }
-            }
-            if (existsDupConn) {
-              cell.value = change.previous;
-              continue;
-            }
             if (cloocaConnections[next]){
               console.log('detected duplicate connection name:' + next);
               cell.value = change.previous;
@@ -471,14 +628,9 @@ module.exports = class CloocaModelGraph {
             }
             let sourceNodeName = cell.source.value;
             changeCloocaConnectionName(sourceNodeName, previous, next);
-            let conns = cloocaConnections[sourceNodeName];
-            if (conns) {
-              conns[next] = conns[previous];
-              delete conns[previous];
-              console.log('edge name change');
-            } else {
-              console.warn('conns is empty');
-            }
+            cloocaConnections[next] = cloocaNodes[previous];
+            delete cloocaConnections[previous];
+            console.log('edge name change');
           } else {
             console.log('node name: ' + previous + " => " + next);
             // 名称重複チェック
@@ -489,7 +641,7 @@ module.exports = class CloocaModelGraph {
             }
             let node = cloocaNodes[previous];
             if ( node && node.values.hold ) { // 変更可否
-                change.cell.value = change.previous;
+              change.cell.value = change.previous;
                 continue;
             }
             changeCloocaNodeName(cloocaNodes, previous, next);
@@ -715,7 +867,7 @@ module.exports = class CloocaModelGraph {
                   ftat_gconnections.forEach(function(conn) {
                     let target = conn.get('target');
                     let targetName = '-none-';
-                    if (target) targetName = target.get(window.instanceIdentifier);
+                    if (target) targetName = target.get('name');
                     if (targetName == cell.value) {
                       console.log('関連エッジの削除');
                       console.dir(conn);

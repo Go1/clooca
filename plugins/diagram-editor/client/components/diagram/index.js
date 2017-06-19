@@ -85,81 +85,8 @@ if (editorSetting) {
 }
 console.log(diagrameditor_json);
 
-// cloocaモデルからエディタ設定JSONを生成する関数
-let generateEditorSettingJsonFromClooca = function(node) {
-  let name = node.get('name');
-  console.log('name',name);
-  let type = node.get('type');
-  console.log('type',type);
-  let icon = node.get('icon');
-  console.log('icon',icon);
-  let width = node.get('width');
-  console.log('width',width);
-  let height = node.get('height');
-  console.log('height',height);
-  let style = node.get('style');
-  console.log('style',style);
-  if (name && type && icon && width && height && style) {
-    let deNode = {
-      'name': name,
-      'type': type,
-      'icon': icon,
-      'width': width,
-      'height': height,
-      'style': style,
-    };
-    console.log('deNode', deNode);
-    return deNode;
-  } else {
-    return null;
-  }
-};
-
-///////////////////////////////////////////////////////
-// ノード向けエディタ設定
-///////////////////////////////////////////////////////
-let deNodes = diagrameditor_json.nodes;
-
-// cloocaモデルから取得できればそれを利用する
-var modelInterface = clooca.getModelInterface();
-var resourceSet = modelInterface.getResourceSet();
-let diagram = resourceSet.elements('Diagram')[0]
-let nodes = diagram.get('nodes');
-let nodeList = nodes.map( (node)=>{return node;} );
-let cloocaEditorSetting = [];
-nodeList.forEach((node) => {
-  console.log('node',node);
-  let deNode = generateEditorSettingJsonFromClooca(node);
-  if (deNode) {
-    cloocaEditorSetting.push(deNode);
-  }
-});
-console.log('cloocaEditorSetting', cloocaEditorSetting);
-if (cloocaEditorSetting.length > 0) {
-  deNodes = cloocaEditorSetting;
-}
-///////////////////////////////////////////////////////
-
-///////////////////////////////////////////////////////
-// コネクション向けエディタ設定
-///////////////////////////////////////////////////////
-let deConns = diagrameditor_json.connections;
-
-// cloocaモデルから取得できればそれを利用する
-let connections = diagram.get('connections').map( (connection)=>{return connection;} );
-let cloocaDeConns = [];
-connections.forEach((connection) => {
-  let deConn = generateEditorSettingJsonFromClooca(connection);
-  if (deConn) {
-    cloocaDeConns.push(deConn);
-  }
-});
-console.log('cloocaDeConns', cloocaDeConns);
-if (cloocaDeConns.length > 0) {
-  deConns = cloocaDeConns;
-}
-///////////////////////////////////////////////////////
-
+const deNodes = diagrameditor_json.nodes;
+const deConns = diagrameditor_json.connections;
 const defaultNode = () => {
     for ( let i = 0; i < deNodes.length; i++ ) {
         if ( deNodes[i].name == diagrameditor_json.addNodeDefault ) return deNodes[i];
@@ -245,6 +172,7 @@ let DiagramEditor = React.createClass({
   },
 
   componentDidUpdate: function () {
+    window.retryThreads = [];
     // Cloocaモデルのグラフエディタをリフレッシュ
     if(!this.state.model || !this.state.diagram) return;
     if ( !graph ) {
@@ -260,6 +188,17 @@ let DiagramEditor = React.createClass({
   },
 
   componentWillUnmount : function() {
+  },
+
+  onClickMetaIndexSync: function() {
+    console.log('onClickMetaIndexSync');
+    let retryThreads = window.retryThreads;
+    if (retryThreads) {
+      for (var i = 0; i < retryThreads.length; i++) {
+        let thread = retryThreads[i];
+        thread.restart();
+      }
+    }
   },
 
   onChangeMode : function(e) {
@@ -305,6 +244,7 @@ let DiagramEditor = React.createClass({
       <div>
       <ToolPallet tools={[]}/>
         <div>
+          <button onClick={this.onClickMetaIndexSync}>MetaIndexSync</button>
           {deNodes.map((node) => <this.menuItem node={node} />)}
           {deConns.map((node) => <this.menuItem node={node} />)}
           <label>
