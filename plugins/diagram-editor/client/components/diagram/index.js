@@ -233,7 +233,7 @@ let DiagramEditor = React.createClass({
   menuItem: function(props) {
     return (
           <label>
-            <input type="radio" name="mode" value={props.node.name} onChange={this.onChangeMode} />
+            <input type="radio" name="mode" value={props.node.name} onClick={this.onChangeMode} />
             <img src={props.node.icon} width="16" height="16" />&nbsp;:{props.node.name}
           </label>
     );
@@ -248,7 +248,7 @@ let DiagramEditor = React.createClass({
           {deNodes.map((node) => <this.menuItem node={node} />)}
           {deConns.map((node) => <this.menuItem node={node} />)}
           <label>
-            <input type="radio" name="mode" value="select" onChange={this.onChangeMode} />
+            <input type="radio" name="mode" value="select" onClick={this.onChangeMode} />
             <img src="select.png" width="16" height="16" />&nbsp;:Select
           </label>
         </div>
