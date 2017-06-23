@@ -417,6 +417,8 @@ module.exports = class CloocaModelGraph {
       }
       let cell = evt.getProperty('cell');
       if (!cell) {
+        // ノード以外の場所がクリックされたらAPIに選択解除を通知
+        MetaIndexAPI.setSelectedIndexes([]);
         return;
       }
       let cellValue = cell.value;
