@@ -2,7 +2,6 @@ var MetaIndexAPI = require('./metaindex-api');
 
 module.exports = class CloocaModelGraph {
   constructor(model, diagram, defaultNode, defaultConn) {
-    console.log('Constructor!!!');
     this.model = model;
     this.diagram = diagram;
     this.defaultNode = defaultNode;
@@ -344,8 +343,8 @@ module.exports = class CloocaModelGraph {
 
     let Notify_editNode_To_API = function(nodes, mode) {
       // ノードの追加・変更・削除をAPIに通知
-      MetaIndexAPI.postIndexes(nodes, function() {
-        console.warn('Failed to postIndexes ' + mode, nodes);
+      MetaIndexAPI.editIndexes(nodes, function() {
+        console.warn('Failed to editIndexes ' + mode, nodes);
       }, mode);
     };
 
@@ -378,7 +377,7 @@ module.exports = class CloocaModelGraph {
       cloocaNodes[instanceName] = classInstance;
 
       // ノードの追加をAPIに通知
-      Notify_editNode_To_API([instanceName + ''], 'add');
+      Notify_editNode_To_API([{name: instanceName + ''}], 'add');
     };
 
     let addCloocaNode2 = function(instanceName, x, y) {
@@ -406,7 +405,7 @@ module.exports = class CloocaModelGraph {
       cloocaNodes[instanceName] = classInstance;
 
       // ノードの追加をAPIに通知
-      Notify_editNode_To_API([instanceName + ''], 'add');
+      Notify_editNode_To_API([{name: instanceName + ''}], 'add');
     };
 
     // ノードがクリックされたときに選択されたノードの名称をMetaIndexAPIに通知
@@ -671,8 +670,10 @@ module.exports = class CloocaModelGraph {
             graph.cellLabelChanged(cell, next);
 
             // ノードの名称変更をAPIに通知(古い名称のノードを削除して新しい名称を追加)
-            Notify_editNode_To_API([previous + ''], 'remove');
-            Notify_editNode_To_API([next + ''], 'add');
+            let indexes = {prev: '', next: ''};
+            indexes['prev'] = [{name: previous + ''}];
+            indexes['next'] = [{name: next + ''}];
+            Notify_editNode_To_API(indexes, 'change');
 
             console.log('node name change');
           }
@@ -901,7 +902,7 @@ module.exports = class CloocaModelGraph {
                       edgeRemove(conn.values.name);
                     }
                   });
-                  remove_indexes.push(cell.value + '');
+                  remove_indexes.push({name: cell.value + ''});
                   indexes.remove(cloocaNodes[cell.value]);
                   delete cloocaNodes[cell.value];
                   graphModel.remove(cell);
@@ -924,6 +925,9 @@ module.exports = class CloocaModelGraph {
           // ノード削除をAPIに通知
           if (remove_indexes.length > 0) {
             Notify_editNode_To_API(remove_indexes, 'remove');
+
+            // 選択中ノードも削除
+            MetaIndexAPI.setSelectedIndexes([]);
           }
         }
         graph.refresh();

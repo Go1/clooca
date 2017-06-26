@@ -3,8 +3,8 @@ let superagent = require('superagent');
 let MetaIndexAPI = function() {
 }
 
-MetaIndexAPI.postIndexes = function(indexNames, onFail, mode = null) {
-  let url = 'http://localhost:4567/indexes' + (!mode ? '' : '/edit/' + mode);
+MetaIndexAPI.postIndexes = function(indexNames, onFail) {
+  let url = 'http://localhost:4567/indexes';
   let param = new Array();
   for (let nameIdx = 0; nameIdx < indexNames.length; nameIdx++) {
     let name = indexNames[nameIdx];
@@ -18,6 +18,28 @@ MetaIndexAPI.postIndexes = function(indexNames, onFail, mode = null) {
   superagent
     .post(url)
     .send(param)
+    .end((err, res) => {
+      if (err) {
+        console.warn(err);
+        onFail();
+        return;
+      }
+      console.log(res);
+      if (res) {
+        let resBody = res.body;
+        console.log(resBody);
+        let resText = res.text;
+        console.log(resText);
+      }
+    });
+};
+
+MetaIndexAPI.editIndexes = function(indexes, onFail, mode) {
+  let url = 'http://localhost:4567/indexes/edit/' + mode;
+  console.log('editIndexes',indexes);
+  superagent
+    .post(url)
+    .send(indexes)
     .end((err, res) => {
       if (err) {
         console.warn(err);
