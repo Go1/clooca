@@ -6,7 +6,7 @@ var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var cors = require('cors');
 
-//var indexes  = require('./routes/indexes');
+var indexes  = require('./routes/indexes');
 //var files  = require('./routes/files');
 var selected_indexes  = require('./routes/selected_indexes');
 //var indexed_containers  = require('./routes/indexed_containers');
@@ -29,7 +29,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(cors());
 
-//app.use('/indexes', indexes);
+app.use('/indexes', indexes);
 //app.use('/files', files);
 app.use('/selected_indexes', selected_indexes);
 //app.use('/indexed_containers', indexed_containers);
