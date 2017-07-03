@@ -8,4 +8,19 @@ router.post( '/select', function ( req, res ) {
     res.send([{}]);
 } );
 
+// 索引（ノード）リストの更新
+router.post( '/', function ( req, res ) {
+    if (req.body) {
+        this.indexes = req.body.map(function(itm) {return itm.name});
+    } else {
+        this.indexes = [];
+    }
+    res.send([{}]);
+} );
+
+// 索引（ノード）リストの取得
+router.get( '/', function ( req, res ) {
+    res.send(this.indexes);
+} );
+
 module.exports = router;
