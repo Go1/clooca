@@ -1,4 +1,4 @@
-var express = require('express');
+global.express = require('express');
 var path = require('path');
 var favicon = require('serve-favicon');
 var logger = require('morgan');
@@ -6,13 +6,18 @@ var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var cors = require('cors');
 
+global.fs = require ( 'fs' );
+global.settings = require ( './classes/Settings' );
+global.clsIndexes = require ( './classes/indexesClass' );
+global.clsCmd = require ( './classes/commandClass' );
+
 var indexes  = require('./routes/indexes');
 //var files  = require('./routes/files');
 var selected_indexes  = require('./routes/selected_indexes');
-//var indexed_containers  = require('./routes/indexed_containers');
+var indexed_containers  = require('./routes/indexed_containers');
 //var assets  = require('./routes/assets');
 //var models  = require('./routes/models');
-//var command  = require('./routes/command');
+var command  = require('./routes/command');
 
 var app = express();
 
@@ -34,10 +39,10 @@ app.use(cors());
 app.use('/indexes', indexes);
 //app.use('/files', files);
 app.use('/selected_indexes', selected_indexes);
-//app.use('/indexed_containers', indexed_containers);
+app.use('/indexed_containers', indexed_containers);
 //app.use('/assets', assets);
 //app.use('/models', models);
-//app.use('/command', command);
+app.use('/command', command);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

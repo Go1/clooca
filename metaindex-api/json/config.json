@@ -1,0 +1,5 @@
+{
+  "indexed_containers_file_path": "./json/indexed-containers.json",
+  "indexes_id_file_path": "./json/indexes-id.json",
+  "selected_indexes_file_path": "./json/selected-indexes.json"
+}
