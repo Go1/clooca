@@ -181,6 +181,12 @@ let window;
 function createWindow() {
     window = new BrowserWindow();
     window.loadURL('http://localhost:3000/');
+
+    // デバッグモードで起動された場合のみ、デベロッパーツールを表示
+    if (process.argv.indexOf('debug')>=0) {
+        window.webContents.openDevTools();
+    }
+
     window.on('closed', function() {
         win = null;
     });

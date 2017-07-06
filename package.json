@@ -11,7 +11,7 @@
     "url": "https://github.com/clooca/clooca.git"
   },
   "scripts": {
-    "start": "node app",
+    "start": "electron app",
     "build": "gulp build",
     "watch": "gulp watch",
     "test": "mocha --compilers .:test/compiler.js test  --recursive",
