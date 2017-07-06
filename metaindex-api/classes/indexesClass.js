@@ -1,4 +1,4 @@
-var settings = require( '../classes/Settings.js' )
+var settings = require( __dirname + '/Settings.js' )
 var fs = require ( 'fs' );
 
 class indexesClass {
