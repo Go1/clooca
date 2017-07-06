@@ -4,7 +4,7 @@
  * Module dependencies.
  */
 
-var app = require('../app');
+var app = require('../api_app');
 var debug = require('debug')('metaindex-api:server');
 var http = require('http');
 
