@@ -10,13 +10,13 @@ global.fs = require ( 'fs' );
 global.settings = require ( './classes/Settings' );
 global.clsIndexes = require ( './classes/indexesClass' );
 global.clsCmd = require ( './classes/commandClass' );
+global.clsModel = require ( './classes/modelClass' );
 
 var indexes  = require('./routes/indexes');
-//var files  = require('./routes/files');
 var selected_indexes  = require('./routes/selected_indexes');
 var indexed_containers  = require('./routes/indexed_containers');
-//var assets  = require('./routes/assets');
-//var models  = require('./routes/models');
+var assets  = require('./routes/assets');
+var models  = require('./routes/models');
 var command  = require('./routes/command');
 
 var api_app = express();
@@ -37,11 +37,10 @@ api_app.use(express.static(path.join(__dirname, 'public')));
 api_app.use(cors());
 
 api_app.use('/indexes', indexes);
-//app.use('/files', files);
 api_app.use('/selected_indexes', selected_indexes);
 api_app.use('/indexed_containers', indexed_containers);
-//app.use('/assets', assets);
-//app.use('/models', models);
+api_app.use('/assets', assets);
+api_app.use('/models', models);
 api_app.use('/command', command);
 
 // catch 404 and forward to error handler
