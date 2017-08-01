@@ -158,3 +158,6 @@ td.mxPopupMenuIcon {
 	opacity: 0.2 !important;
 	cursor:default !important;
 }
+.diagram_menu_icon {
+	vertical-align: middle;
+}

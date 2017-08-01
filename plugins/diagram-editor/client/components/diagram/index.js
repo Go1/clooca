@@ -9,7 +9,7 @@ var diagrameditor_json = {
         {
             "name": "Rectangle",
             "type": "Index",
-            "icon": "index.png",
+            "icon": "/icon/rectangle.png",
             "width": 80,
             "height": 40,
             "style": "shape=rectangle"
@@ -17,7 +17,7 @@ var diagrameditor_json = {
         {
             "name": "Ellipse",
             "type": "IndexGroup",
-            "icon": "index-group.png",
+            "icon": "/icon/ellipse.png",
             "width": 80,
             "height": 40,
             "style": "shape=ellipse"
@@ -25,7 +25,7 @@ var diagrameditor_json = {
         {
             "name": "Rhombus",
             "type": "Index",
-            "icon": "rhombus.png",
+            "icon": "/icon/rhombus.png",
             "width": 80,
             "height": 40,
             "style": "shape=rhombus"
@@ -33,7 +33,7 @@ var diagrameditor_json = {
         {
             "name": "Hexagon",
             "type": "Index",
-            "icon": "hexagon.png",
+            "icon": "/icon/hexagon.png",
             "width": 80,
             "height": 40,
             "style": "shape=hexagon"
@@ -41,7 +41,7 @@ var diagrameditor_json = {
         {
             "name": "Cylinder",
             "type": "Index",
-            "icon": "cylinder.png",
+            "icon": "/icon/cylinder.png",
             "width": 100,
             "height": 100,
             "style": "shape=cylinder"
@@ -49,7 +49,7 @@ var diagrameditor_json = {
         {
             "name": "Cloud",
             "type": "Index",
-            "icon": "cloud.png",
+            "icon": "/icon/cloud.png",
             "width": 400,
             "height": 100,
             "style": "shape=cloud"
@@ -59,7 +59,7 @@ var diagrameditor_json = {
         {
             "name": "Arrow",
             "type": "Assosiation",
-            "icon": "arrow.png",
+            "icon": "/icon/arrow.png",
             "width": 80,
             "height": 40,
             "style": "dashed=0;fontColor=blue"
@@ -67,7 +67,7 @@ var diagrameditor_json = {
         {
             "name": "dottedArrow",
             "type": "Assosiation",
-            "icon": "dottedarrow.png",
+            "icon": "/icon/dottedarrow.png",
             "width": 80,
             "height": 40,
             "style": "dashed=1;fontColor=black"
@@ -234,7 +234,7 @@ let DiagramEditor = React.createClass({
     return (
           <label>
             <input type="radio" name="mode" value={props.node.name} onClick={this.onChangeMode} />
-            <img src={props.node.icon} width="16" height="16" />&nbsp;:{props.node.name}
+            <img src={props.node.icon} width="16" height="16" className="diagram_menu_icon" />&nbsp;:{props.node.name}
           </label>
     );
   },
@@ -249,7 +249,7 @@ let DiagramEditor = React.createClass({
           {deConns.map((node) => <this.menuItem node={node} />)}
           <label>
             <input type="radio" name="mode" value="select" onClick={this.onChangeMode} />
-            <img src="select.png" width="16" height="16" />&nbsp;:Select
+            <img src="/icon/select.png" width="16" height="16" className="diagram_menu_icon" />&nbsp;:Select
           </label>
         </div>
       </div>

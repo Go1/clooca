@@ -451,6 +451,11 @@ module.exports = class CloocaModelGraph {
       let vertex = graph.insertVertex(parent, null, instanceName, x, y, w, h, style);
       vertexes[instanceName] = vertex;
 
+      // 今追加したノードの選択を通知
+      let indexNames = [instanceName + ''];
+      console.log(indexNames);
+      MetaIndexAPI.setSelectedIndexes(indexNames);
+
       evt.consume();
     });
 /*
