@@ -97,7 +97,6 @@ module.exports = class CloocaModelGraph {
 
     // 指定した名称リストに一致するcellを選択状態にする関数を定義
     let setGraphCellSelection = function(targetCellValues) {
-      console.log(targetCellValues);
       selModel.clear();  // 選択クリア
       let cells = graph.getModel().cells;
       console.log(cells);
@@ -346,6 +345,12 @@ module.exports = class CloocaModelGraph {
       MetaIndexAPI.editIndexes(nodes, function() {
         console.warn('Failed to editIndexes ' + mode, nodes);
       }, mode);
+
+      // ノード名が変更されたら、選択中ノードのJSONをクリアして変更後の名称をセット
+      if (mode === 'change') {
+        MetaIndexAPI.setSelectedIndexes([]);
+        MetaIndexAPI.setSelectedIndexes([nodes.next[0].name]);
+      }
     };
 
     let addCloocaNode = function(instanceName, x, y) {
@@ -411,9 +416,11 @@ module.exports = class CloocaModelGraph {
     // ノードがクリックされたときに選択されたノードの名称をMetaIndexAPIに通知
     graph.addListener(mx.mxEvent.CLICK, function(sender, evt) {
       console.log('mxEvent.CLICK');
+/* Select状態でなくても、APIに選択通知を行う
       if (!window.isSelectMode) {
         return;
       }
+*/
       let cell = evt.getProperty('cell');
       if (!cell) {
         // ノード以外の場所がクリックされたらAPIに選択解除を通知
@@ -455,6 +462,12 @@ module.exports = class CloocaModelGraph {
       let indexNames = [instanceName + ''];
       console.log(indexNames);
       MetaIndexAPI.setSelectedIndexes(indexNames);
+
+      // 今追加したノードを選択状態にする
+      setGraphCellSelection(indexNames);
+
+      // 今追加したノードを編集状態にする
+      graph.startEditingAtCell(vertex);
 
       evt.consume();
     });
@@ -758,6 +771,8 @@ module.exports = class CloocaModelGraph {
             let connName = new Date().getTime()+1;
             let w = defaultNode.width, h = defaultNode.height;
             let style = defaultNode.style;
+            let vertex = null;
+
             if ( selModel.cells.length == 1 ) { //子ノード追加
                 let cell = selModel.cells[0];
                 console.dir(cell);
@@ -765,7 +780,7 @@ module.exports = class CloocaModelGraph {
                 let targetNode = null;
                 let x = (cell.geometry.x + 50), y = (cell.geometry.y + 150);
                 addCloocaNode2(nodeName, x, y);
-                let vertex = graph.insertVertex(parent, null, nodeName, x, y, w, h, style);
+                vertex = graph.insertVertex(parent, null, nodeName, x, y, w, h, style);
                 vertexes[nodeName] = vertex;
                 let indexes = model.get('indexes');
                 for ( let i = 0; i < indexes.size(); i++ ){
@@ -782,8 +797,21 @@ module.exports = class CloocaModelGraph {
             } else { //ノード追加
                 let x = 10, y = 100;
                 addCloocaNode2(nodeName, x, y);
-                let vertex = graph.insertVertex(parent, null, nodeName, x, y, w, h, style);
+                vertex = graph.insertVertex(parent, null, nodeName, x, y, w, h, style);
                 vertexes[nodeName] = vertex;
+            }
+
+            // 今追加したノードの選択を通知
+            let indexNames = [nodeName + ''];
+            console.log(indexNames);
+            MetaIndexAPI.setSelectedIndexes(indexNames);
+
+            // 今追加したノードを選択状態にする
+            setGraphCellSelection(indexNames);
+
+            // 今追加したノードを編集状態にする
+            if (vertex) {
+              graph.startEditingAtCell(vertex);
             }
         }
     });
