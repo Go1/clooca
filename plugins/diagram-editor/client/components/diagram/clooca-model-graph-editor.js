@@ -54,6 +54,8 @@ module.exports = class CloocaModelGraph {
 
     this.refresh();
 
+    let nodeCfInfo = {};
+
     // cloocaモデルからノードのリストを抽出
     let nodes = diagram.get('nodes');
     //console.dir(nodes);
@@ -64,6 +66,10 @@ module.exports = class CloocaModelGraph {
       let metaElement = node.get('metaElement');
       let containFeature = node.get('containFeature');
       let cfName = containFeature.get('name');
+
+      // ノードの格納先となるcontainFeature名を保持しておく
+      nodeCfInfo[node.get('name')] = cfName;
+
       if (cfNames.indexOf(cfName) < 0) {
         cfNames.push(cfName);
         let cfInstances = model.get(cfName || 'classes');
@@ -378,7 +384,10 @@ module.exports = class CloocaModelGraph {
           style: nodeProperty.style
         }
       );
-      model.get('indexes').add(classInstance);
+
+      // 追加したノードを、対応するモデルのcontainFeatureに追加する
+      model.get(nodeCfInfo[nodeProperty.name]).add(classInstance);
+
       cloocaNodes[instanceName] = classInstance;
 
       // ノードの追加をAPIに通知
@@ -406,7 +415,10 @@ module.exports = class CloocaModelGraph {
           style: defaultNode.style
         }
       );
-      model.get('indexes').add(classInstance);
+
+      // 追加したノードを、対応するモデルのcontainFeatureに追加する
+      model.get(nodeCfInfo[defaultNode.name]).add(classInstance);
+
       cloocaNodes[instanceName] = classInstance;
 
       // ノードの追加をAPIに通知
@@ -782,7 +794,7 @@ module.exports = class CloocaModelGraph {
                 addCloocaNode2(nodeName, x, y);
                 vertex = graph.insertVertex(parent, null, nodeName, x, y, w, h, style);
                 vertexes[nodeName] = vertex;
-                let indexes = model.get('indexes');
+                let indexes = model.get(nodeCfInfo[defaultNode.name]);
                 for ( let i = 0; i < indexes.size(); i++ ){
                     if ( indexes._internal[i].values.name == nodeName ) {
                         targetNode = indexes._internal[i];
@@ -916,7 +928,7 @@ module.exports = class CloocaModelGraph {
           let bf = selModel.cells.length, af = 0;
           console.log('DELETE: count = ' + bf);
           console.dir(selModel);
-          let indexes = model.get('indexes');
+
           let remove_indexes = new Array();
           while ( bf != af ) {
             selModel.cells.forEach(function(cell) {
@@ -936,7 +948,23 @@ module.exports = class CloocaModelGraph {
                     }
                   });
                   remove_indexes.push({name: cell.value + ''});
-                  indexes.remove(cloocaNodes[cell.value]);
+
+                  let indexes;
+        
+                  // 削除したノードが、モデルのどのcontainFeatureに含まれるか探す
+                  let isContainedCf = cfNames.some(function (cf) {
+                    indexes = model.get(cf);
+                    let modelArray = indexes.array().filter(function(eobj, idx) {
+                      return eobj.get('name') === cell.value;
+                    });
+                    return modelArray.length > 0;
+                  });
+
+                  if (isContainedCf) {
+                    // containFeatureからノードを削除
+                    indexes.remove(cloocaNodes[cell.value]);
+                  }
+
                   delete cloocaNodes[cell.value];
                   graphModel.remove(cell);
                   //graph.cellsRemoved(cell);

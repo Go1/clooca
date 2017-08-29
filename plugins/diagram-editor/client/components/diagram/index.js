@@ -9,7 +9,7 @@ var diagrameditor_json = {
         {
             "name": "Rectangle",
             "type": "Index",
-            "icon": "/icon/rectangle.png",
+            "icon": "/mxgraph/editor-images/rectangle.png",
             "width": 80,
             "height": 40,
             "style": "shape=rectangle"
@@ -17,7 +17,7 @@ var diagrameditor_json = {
         {
             "name": "Ellipse",
             "type": "IndexGroup",
-            "icon": "/icon/ellipse.png",
+            "icon": "/mxgraph/editor-images/ellipse.png",
             "width": 80,
             "height": 40,
             "style": "shape=ellipse"
@@ -25,7 +25,7 @@ var diagrameditor_json = {
         {
             "name": "Rhombus",
             "type": "Index",
-            "icon": "/icon/rhombus.png",
+            "icon": "/mxgraph/editor-images/rhombus.png",
             "width": 80,
             "height": 40,
             "style": "shape=rhombus"
@@ -33,7 +33,7 @@ var diagrameditor_json = {
         {
             "name": "Hexagon",
             "type": "Index",
-            "icon": "/icon/hexagon.png",
+            "icon": "/mxgraph/editor-images/hexagon.png",
             "width": 80,
             "height": 40,
             "style": "shape=hexagon"
@@ -41,7 +41,7 @@ var diagrameditor_json = {
         {
             "name": "Cylinder",
             "type": "Index",
-            "icon": "/icon/cylinder.png",
+            "icon": "/mxgraph/editor-images/cylinder.png",
             "width": 100,
             "height": 100,
             "style": "shape=cylinder"
@@ -49,7 +49,7 @@ var diagrameditor_json = {
         {
             "name": "Cloud",
             "type": "Index",
-            "icon": "/icon/cloud.png",
+            "icon": "/mxgraph/editor-images/cloud.png",
             "width": 400,
             "height": 100,
             "style": "shape=cloud"
@@ -59,7 +59,7 @@ var diagrameditor_json = {
         {
             "name": "Arrow",
             "type": "Assosiation",
-            "icon": "/icon/arrow.png",
+            "icon": "/mxgraph/editor-images/arrow.png",
             "width": 80,
             "height": 40,
             "style": "dashed=0;fontColor=blue"
@@ -67,7 +67,7 @@ var diagrameditor_json = {
         {
             "name": "dottedArrow",
             "type": "Assosiation",
-            "icon": "/icon/dottedarrow.png",
+            "icon": "/mxgraph/editor-images/dottedarrow.png",
             "width": 80,
             "height": 40,
             "style": "dashed=1;fontColor=black"
@@ -83,6 +83,48 @@ console.log(editorSetting);
 if (editorSetting) {
   diagrameditor_json = editorSetting;
 }
+
+// diagrameditor.jsonの定義情報を取得
+var mi = clooca.getModelInterface();
+var rs = mi.getResourceSet();
+let dg = rs.elements('Diagram')[0]
+
+var nodes = dg.get('nodes');
+var nodeList = nodes.map( (node)=>{
+  return {
+          name : node.get('name'),
+          type : node.get('type'),
+          icon : node.get('icon'),
+          width : node.get('width'),
+          height : node.get('height'),
+          style : node.get('style')
+  }
+});
+
+// diagrameditor.jsonにnodeのリストが定義されていれば
+// エディタのノードの選択肢を置き換え
+if (nodeList.length > 0) {
+  diagrameditor_json.nodes = nodeList;
+}
+
+var connections = dg.get('connections');
+var conList = connections.map( (con)=>{
+  return {
+          name : con.get('name'),
+          type : con.get('type'),
+          icon : con.get('icon'),
+          width : con.get('width'),
+          height : con.get('height'),
+          style : con.get('style')
+  }
+});
+
+// diagrameditor.jsonにconnectionのリストが定義されていれば
+// エディタのコネクションの選択肢を置き換え
+if (conList.length > 0) {
+  diagrameditor_json.connections = conList;      
+}
+
 console.log(diagrameditor_json);
 
 const deNodes = diagrameditor_json.nodes;
@@ -249,7 +291,7 @@ let DiagramEditor = React.createClass({
           {deConns.map((node) => <this.menuItem node={node} />)}
           <label>
             <input type="radio" name="mode" value="select" onClick={this.onChangeMode} />
-            <img src="/icon/select.png" width="16" height="16" className="diagram_menu_icon" />&nbsp;:Select
+            <img src="/mxgraph/editor-images/select.png" width="16" height="16" className="diagram_menu_icon" />&nbsp;:Select
           </label>
         </div>
       </div>
