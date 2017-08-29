@@ -460,6 +460,12 @@ module.exports = class CloocaModelGraph {
       if (cell) {
         return;
       }
+      
+      // Assosiationの追加は不可（ノード間のドラッグ&ドロップのみ可能）
+      if (nodeProperty.type === 'Assosiation') {
+        return;
+      }
+
       let instanceName = new Date().getTime();
       let event = evt.getProperty('event');
       let x = event.offsetX;
