@@ -16,7 +16,7 @@
     "watch": "gulp watch",
     "test": "mocha --compilers .:test/compiler.js test  --recursive",
     "webpack": "webpack",
-    "package": "electron-packager . --overwrite --platform=darwin --arch=x64 --no-prune --out=release-builds --version=1.6.8"
+    "package": "electron-packager . --overwrite --platform=darwin,win32 --arch=x64,x64 --no-prune --out=release-builds --version=1.6.8"
   },
   "main": "app.js",
   "bin": {
